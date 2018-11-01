@@ -51,7 +51,7 @@ void finite_diff_hessian(const V3d &w, const V3d &v,
 // By linearity, we can test on the three canonical basis vectors.
 //
 // We test the formulas exactly at the identity (w = 0)     (where a simpler formula is used)
-// Near the identity with many random axes (w = 0)          (where Taylor expansions are used to avoid approximating 0/0)
+// Near the identity with many random axes (||w|| << 1)     (where Taylor expansions are used to avoid approximating 0/0)
 // Farther away from the identity with random axes/angles   (where the full formula with trig functions is evaluated)
 TEST_CASE("gradient tests", "[gradients]" ) {
     M3d I(M3d::Identity());
