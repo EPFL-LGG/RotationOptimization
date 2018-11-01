@@ -44,6 +44,10 @@ inline double three_theta_cos_plus_theta_sq_minus_3_sin_div_theta_pow_5(double t
     return (3 * theta * cos(theta) + (theta_sq - 3) * sin(theta)) / (theta_sq * theta_sq * theta);
 }
 
+////////////////////////////////////////////////////////////////////////////////
+// Rotation formula and its gradient/Hessian
+////////////////////////////////////////////////////////////////////////////////
+// Compute R(w) v
 V3d rotated_vector(const V3d &w, const V3d &v) {
     const double theta_sq = w.squaredNorm();
     const double theta    = std::sqrt(theta_sq);
@@ -59,6 +63,8 @@ M3d cross_product_matrix(const V3d &v) {
     return result;
 }
 
+// Gradient of R(w) v; this is a second order tensor, returned as a 3x3 matrix:
+//      G_ij = D [R(w) v]_i / dw_j
 M3d grad_rotated_vector(const V3d &w, const V3d &v) {
     const double theta_sq = w.squaredNorm();
 
@@ -75,7 +81,7 @@ M3d grad_rotated_vector(const V3d &w, const V3d &v) {
     return result;
 }
 
-// The Hessian of R(w) v: this is a third order tensor:
+// The Hessian of R(w) v; this is a third order tensor:
 //      H_ijk = d [R(w) v]_i / (dw_j dw_k)
 // We output the i^th slice of this tensor (the Hessian of rotated vector
 // component i) in hess_comp[i].
@@ -91,8 +97,8 @@ void hess_rotated_vector(const V3d &w, const V3d &v,
         return;
     }
 
-    const double theta    = std::sqrt(theta_sq);
-    const double w_dot_v  = w.dot(v);
+    const double theta   = std::sqrt(theta_sq);
+    const double w_dot_v = w.dot(v);
     M3d w_otimes_w = w * w.transpose();
     M3d w_otimes_v = w * v.transpose();
     const double coeff0 = sinc                                                                               (theta, theta_sq),
