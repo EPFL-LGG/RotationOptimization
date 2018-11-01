@@ -1,0 +1,314 @@
+\documentclass[10pt]{article}
+
+\usepackage[latin1]{inputenc}
+\usepackage{amsmath, amssymb, amsfonts, amsthm}
+\usepackage{upgreek}
+\usepackage{amsthm}
+\usepackage{fullpage}
+\usepackage{graphicx}
+\usepackage{cancel}
+\usepackage{subfigure}
+\usepackage{mathrsfs}
+\usepackage{outlines}
+\usepackage[font={sf,it}, labelfont={sf,bf}, labelsep=space, belowskip=5pt]{caption}
+\usepackage{hyperref}
+% \usepackage{minted}
+\usepackage{titling}
+\usepackage{xifthen}
+\usepackage{color}
+
+\usepackage{fancyhdr}
+\usepackage[title]{appendix}
+\usepackage{float}
+
+\usepackage{bm}
+
+\newcommand{\documenttitle}{Optimizing over SO(3)}
+
+\DeclareMathOperator{\tr}{tr}
+\DeclareMathOperator{\sgn}{sgn}
+\DeclareMathOperator{\sinc}{sinc}
+\DeclareMathOperator{\rref}{rref}
+\DeclareMathOperator{\cof}{cof}
+\DeclareMathOperator*{\sym}{sym}
+
+\DeclareMathOperator{\diag}{diag}
+\DeclareMathOperator*{\argmax}{argmax}
+\DeclareMathOperator*{\argmin}{argmin}
+\newcommand{\defeq}{\vcentcolon=}
+\renewcommand{\Re}{\operatorname{Re}} \renewcommand{\Im}{\operatorname{Im}}
+\allowdisplaybreaks
+
+\pagestyle{fancy}
+\headheight 24pt
+\headsep    12pt
+\lhead{\documenttitle}
+\rhead{\today}
+\fancyfoot[C]{} % hide the default page number at the bottom
+\lfoot{}
+\rfoot{\thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+\renewcommand\footrulewidth{0.4pt}
+\providecommand{\abs}[1]{\lvert#1\rvert}
+\providecommand{\norm}[1]{\lVert#1\rVert}
+\providecommand{\normlr}[1]{\left\lVert#1\right\rVert}
+\providecommand{\dx}{\, \mathrm{d}x}
+\providecommand{\ds}{\, \mathrm{d}s}
+\providecommand{\lint}[3]{\int_{#1}^{#2} \! #3 \, \ds}
+% \providecommand{\vint}[2]{\int_{#1} \! #2 \, \mathrm{d}x}
+% \providecommand{\sint}[2]{\int_{\partial #1} \! #2 \, \mathrm{d}A}
+\renewcommand{\div}{\nabla \cdot}
+\providecommand{\cross}{\times}
+\providecommand{\curl}{\nabla \cross}
+\providecommand{\grad}{\nabla}
+\providecommand{\laplacian}{\bigtriangleup}
+\providecommand{\shape}{\Omega}
+\providecommand{\mesh}{\mathcal{M}}
+\providecommand{\boundary}{\partial \shape}
+\def\d{\mathrm{d}}
+\providecommand{\vint}[3][\x]{\int_{#2} \! #3 \, \mathrm{d}#1}
+\providecommand{\sint}[3][\x]{\int_{#2} \! #3 \, \mathrm{d}A(#1)}
+\providecommand{\pder}[2]{\frac{\partial #1}{\partial #2}}
+\providecommand{\spder}[3]{\frac{\partial^2 #1}{\partial #2 \partial #3}}
+\providecommand{\tder}[2]{\frac{\mathrm{d} #1}{\mathrm{d} #2}}
+\providecommand{\evalat}[2]{\left.#1\right|_{#2}}
+\renewcommand{\vec}[1]{{\bf #1}}
+
+\providecommand{\tderatzero}[2]{\left.\frac{\mathrm{d} #1}{\mathrm{d} #2}\right|_{#2 = 0}}
+
+\newcommand{\TODO}[1]{\textbf{****** {\bf{[#1]}} ******}}
+
+\usepackage{prettyref}
+\newrefformat{sec}{Section~\ref{#1}}
+\newrefformat{tbl}{Table~\ref{#1}}
+\newrefformat{fig}{Figure~\ref{#1}}
+\newrefformat{chp}{Chapter~\ref{#1}}
+\newrefformat{eqn}{\eqref{#1}}
+\newrefformat{set}{\eqref{#1}}
+\newrefformat{alg}{Algorithm~\ref{#1}}
+\newrefformat{apx}{Appendix~\ref{#1}}
+\newrefformat{prop}{Proposition~\ref{#1}}
+\newcommand\pr[1]{\prettyref{#1}}
+
+\def\normal{{\bm \nu}}
+\def\n{\normal}
+\def\a{\vec{a}}
+\def\b{\vec{b}}
+\def\t{\vec{t}}
+\def\x{\vec{x}}
+\def\X{\vec{X}}
+\def\y{\vec{y}}
+\def\z{\vec{z}}
+\def\u{\vec{u}}
+\def\f{\vec{f}}
+\def\w{\vec{w}}
+\def\wn{\norm{\w}}
+\def\p{\vec{p}}
+\def\v{\vec{v}}
+\def\e{\vec{e}}
+\def\ue{\vec{u}^\e}
+\def\fu{\pder{\f}{u}}
+\def\fv{\pder{\f}{v}}
+\def\strain{\varepsilon}
+\def\stress{\sigma}
+\def\kb{\kappa \b}
+\def\kbi{(\kappa \b)_i}
+\def\k{\kappa}
+\def\R{\, \mathbb{R}}
+\def\L{\, \mathcal{L}}
+
+\providecommand{\compose}{\circ}
+\providecommand{\surface}{\Gamma}
+\providecommand{\surfacegrad}{\nabla_\surface}
+\providecommand{\surfacediv}{\surfacegrad \cdot}
+\providecommand{\surfacelaplacian}{\laplacian_\surface}
+
+\providecommand{\epssurface}{{\Gamma_\epsilon}}
+\providecommand{\epssurfacegrad}{\nabla_\epssurface}
+\providecommand{\epssurfacediv}{\epssurfacegrad \cdot}
+\providecommand{\epsnormal}{\normal_\epsilon}
+\providecommand{\epsnormalmat}{\tilde{\normal}_\epsilon}
+\providecommand{\epsphi}{\phi_\epsilon}
+\providecommand{\normalmatder}{\dot{\normal}}
+\providecommand{\shapefunc}{{\bm \phi}}
+
+\def\vt{\vec{v}_t}
+\def\k{\kappa}
+
+\newcommand*{\rom}[1]{\expandafter\@slowromancap\romannumeral #1@}
+\newcommand{\RN}[1]{\textup{\uppercase\expandafter{\romannumeral#1}}}
+
+\newtheorem{lemma}{Lemma}
+\newtheorem{proposition}{Proposition}
+\newtheorem{corollary}{Corollary}
+
+\makeatletter
+\usepackage{mathtools}
+\newcases{mycases}{\quad}{%
+  \hfil$\m@th\displaystyle{##}$}{$\m@th\displaystyle{##}$\hfil}{\lbrace}{.}
+\makeatother
+
+\setlength{\droptitle}{-50pt}
+\title{\documenttitle}
+\author{Julian Panetta}
+
+% BEGIN DOCUMENT
+\begin{document}
+\maketitle
+
+To optimize an objective function involving rotational
+degrees of freedom, we first need to choose a representation for rotations.
+Our goal is to select a parametrization of $SO(3)$ that avoids
+singularities to the extent possible and that makes our optimizer's job easier.
+
+We could use unit quaternions, which would solve the problem
+of singularities, but would require us to impose unit norm constraints during the optimization. We could
+use Euler angles, but these will run into singularities (gimbal lock) after just
+a $\frac{\pi}{2}$ rotation. Instead, we use the tangent space to $SO(3)$
+(infinitesimal rotations) at some ``reference'' rotation $R_0$. In this representation, the additional
+rotation to be applied after  $R_0$ is encoded as a vector pointing along the
+rotation axis with length equal to the rotation angle. The rotation is then
+obtained by the exponential map (more precisely, we construct the skew-symmetric cross-product matrix ``$X$'' for this
+vector and calculate $e^X R_0$).
+
+This representation is nice because it allows rotations of up to $\pi$ before
+running into singularities. We can avoid singularities entirely by setting bound
+constraints on our infinitesimal rotation components and then updating the
+parametrization (changing $R_0$ to the current rotation) if the optimizer
+terminates with one of these bounds active. We could even update $R_0$
+at every step of the optimization, which would greatly
+simplify the gradient and Hessian formulas as we'll see in \pr{sec:around_identity}
+(and as exploited
+in \cite{kugelstadt2018fast} and \cite{taylor1994minimization}). However, we
+derive the full formulas for the gradient and Hessian away from the identity, since
+updating the parametrization---changing the optimization variables---at every
+step isn't supported in off-the-shelf optimization libraries (e.g. Knitro or
+IPOPT). Note that \cite{grassia1998practical} proposes using the same
+parametrization, though they only provide gradient formulas, not Hessian
+formulas (and work with quaternions instead of Rodrigues' rotation formula).
+
+\section{Representation and Exponential Map}
+We denote our infinitesimal rotation by vector $\w$, which encodes the rotation axis $\frac{\w}{\norm{\w}}$
+and angle $\norm{\w}$.
+We can apply the rotation computed by the exponential map to a vector $\v$ using Rodrigues' rotation formula.
+For simplicity, we assume $R_0 = I$; this simplification can be applied in practice by first rotating $\v$ by $R_0$.
+$$
+\tilde{\v} = R(\w) \v =
+        \v \cos(\wn) + \w \w^T \v \frac{1 - \cos(\wn)}{\wn^2} + (\w \cross \v) \frac{\sin(\wn)}{\wn}.
+$$
+(We could obtain the entire rotation matrix by substituting the canonical basis vectors $\e^0$,  $\e^1$,  $\e^2$ in for $\v$.)
+
+\section{Gradients and Hessians}
+Now we compute derivatives of the rotated vector with respect to $\w$:
+
+\begin{flalign*}
+\begin{aligned}
+\pder{\tilde{\v}}{\w} &=
+     -(\v \otimes \w) \frac{\sin(\wn)}{\wn}
+     + \big[(\w \cdot \v) I  + \w \otimes \v \big] \left(\frac{1 - \cos(\wn)}{\wn^2}\right)
+     + (\w \otimes \w)\left((\w \cdot \v) \frac{2 \cos(\wn) - 2 + \wn \sin(\wn)}{\wn^4}\right)
+\\  &\quad
+     - [\v]_\cross \frac{\sin(\wn)}{\wn}
+     + [(\w \cross \v) \otimes \w]\frac{\wn \cos(\wn) - \sin(\wn)}{\wn^3}
+\end{aligned}
+\end{flalign*}
+\begin{flalign*}
+\boxed{
+    \begin{aligned}
+    &=
+         -(\v \otimes \w + [\v]_\cross) \frac{\sin(\wn)}{\wn}
+         + \big[(\w \cdot \v) I  + \w \otimes \v \big] \left(\frac{1 - \cos(\wn)}{\wn^2}\right)
+    \\ &\quad
+         + (\w \otimes \w)\left((\w \cdot \v) \frac{2 \cos(\wn) - 2 + \wn \sin(\wn)}{\wn^4}\right)
+         + [(\w \cross \v) \otimes \w]\frac{\wn \cos(\wn) - \sin(\wn)}{\wn^3},
+    \end{aligned}
+}
+\end{flalign*}
+where $[\v]_\cross$ is the cross product matrix for $\v$.
+Next, we differentiate again to get the Hessian (a third order tensor whose two
+``rightmost'' slots correspond to the differentiation variables):
+
+\begin{align*}
+\frac{\partial^2 \tilde{\v}}{\partial \w^2}
+&=
+    -(\v \otimes I)  \frac{\sin(\wn)}{\wn}
+    - \big[(\v \otimes \w + [\v]_\cross) \otimes \w\big] \left(\frac{\wn \cos(\wn) - \sin(\wn)}{\wn^3}\right)
+\\ &\quad
+    + \big[ I \otimes \v + \e^i \otimes \v \otimes \e^i \big] \left(\frac{1 - \cos(\wn)}{\wn^2}\right)
+    + \big[ (\w \cdot \v) I + \w \otimes \v \big] \otimes \w \left(\frac{2 \cos(\wn) - 2 + \wn \sin(\wn)}{\wn^4}\right)
+\\ &\quad
+    + \big[\e^i \otimes \w \otimes \e^i + \w \otimes \e^i \otimes \e^i\big] \left((\w \cdot \v) \frac{2 \cos(\wn) - 2 + \wn \sin(\wn)}{\wn^4}\right)
+\\ &\quad
+    + \w \otimes \w \otimes \v \left(\frac{2 \cos(\wn) - 2 + \wn \sin(\wn)}{\wn^4}\right)
+\\ &\quad
+    + \w \otimes \w \otimes \w \left((\w \cdot \v) \frac{8 + (\wn^2 - 8) \cos(\wn) - 5 \wn \sin(\wn)}{\wn^6}\right)
+\\ &\quad
+    + \big[-\e^i \otimes \w \otimes [\v]_\cross^i + (\w\cross\v) \otimes I \big] \left(\frac{\wn \cos(\wn) - \sin(\wn)}{\wn^3}\right)
+\\ &\quad
+    + \big[(\w \cross \v) \otimes \w \otimes \w\big]\left(-\frac{3 \wn \cos(\wn) + (\wn^2 - 3) \sin(\wn)}{\wn^5}\right),
+\end{align*}
+were we sum over repeated superscripts ($i \in {0, 1, 2}$) and defined $[\v]_\cross^i$ to be the vector holding the $i^\text{th}$
+\emph{row} of the cross product matrix $[\v]_\cross$:
+$$
+[\v]_\cross =
+\begin{pmatrix}
+0 & -v_2 & v_1 \\
+v_2 & 0 & -v_0 \\
+-v_1 & v_0 & 0 \\
+\end{pmatrix}
+\quad \Longrightarrow \quad
+[\v]_\cross^0 = \begin{pmatrix} 0 \\ -v_2 \\ v_1 \end{pmatrix},\,\,
+[\v]_\cross^1 = \begin{pmatrix} v_2 \\ 0 \\ -v_0 \end{pmatrix},\,\,
+[\v]_\cross^2 = \begin{pmatrix} -v_1 \\ v_0 \\ 0 \end{pmatrix}.
+$$
+We can simplify this Hessian into a form that reveals the expected symmetry with respect to the two rightmost indices:
+\begin{equation*}
+\boxed{
+\begin{aligned}
+\frac{\partial^2 \tilde{\v}}{\partial \w^2}
+&=
+    -(\v \otimes I)  \frac{\sin(\wn)}{\wn}
+    - \big[(\v \otimes \w \otimes \w + \e^i \otimes ([\v]_\cross^i \otimes \w + \w \otimes [\v]_\cross^i) + (\v \cross \w) \otimes I \big] \left(\frac{\wn \cos(\wn) - \sin(\wn)}{\wn^3}\right)
+\\ &\quad
+    + \big[ \e^i \otimes (\e^i \otimes \v +  \v \otimes \e^i) \big] \left(\frac{1 - \cos(\wn)}{\wn^2}\right)
+\\ &\quad
+    + \bigg[ (\w \cdot \v) \Big(\e^i \otimes (\e^i \otimes \w + \w \otimes \e^i) + \w \otimes I\Big) + \w \otimes (\v \otimes \w + \w \otimes \v) \bigg] \left(\frac{2 \cos(\wn) - 2 + \wn \sin(\wn)}{\wn^4}\right)
+\\ &\quad
+    + \w \otimes \w \otimes \w \left((\w \cdot \v) \frac{8 + (\wn^2 - 8) \cos(\wn) - 5 \wn \sin(\wn)}{\wn^6}\right)
+\\ &\quad
+    + \big[(\v \cross \w) \otimes \w \otimes \w\big]\left(\frac{3 \wn \cos(\wn) + (\wn^2 - 3) \sin(\wn)}{\wn^5}\right).
+\end{aligned}
+}
+\end{equation*}
+
+\clearpage
+\section{Numerically Robust Formulas}
+The rotation formula and its derivatives must be evaluated with care: around $\w = 0$, a naive implementation would
+attempt to calculate (approximately) $\frac{0}{0}$ for several of the expressions. In particular, we must use the following
+Taylor expansions to evaluate the problematic terms for $\wn \ll 1$:
+\begin{align*}
+\frac{\sin{\wn}}{\wn}                                    &= 1 - \frac{\wn^2}{6} + O(\wn^4) \\
+\frac{1 - \cos(\wn)}{\wn^2}                              &= \frac{1}{2} - \frac{\wn^2}{24} + O(\wn^4) \\
+\frac{\wn \cos(\wn) - \sin(\wn)}{\wn^3}                  &= -\frac{1}{3} + \frac{\wn^2}{30} + O(\wn^4) \\
+\frac{2 \cos(\wn] - 2 + \wn \sin(\wn)}{\wn^4}            &= -\frac{1}{12} + \frac{\wn^2}{180} + O(\wn^4) \\
+\frac{8 + (\wn^2 - 8)\cos(\wn) - 5 \wn \sin(\wn)}{\wn^6} &= \frac{1}{90} - \frac{\wn^2}{1680} + O(\wn^4) \\
+\frac{3 \wn \cos(\wn) + (\wn^2 - 3) \sin(\wn)}{\wn^5}    &= -\frac{1}{15} + \frac{\wn^2}{210} + O(\wn^4).
+\end{align*}
+
+\section{Variations around the Identity}
+\label{sec:around_identity}
+Most of the terms in the gradient and Hessian formulas vanish when we evaluate at $\w = 0$. This means that if we update the
+parametrization at every iteration of Newton's method, we can use much simpler formulas:
+\begin{align*}
+\left.\pder{\tilde{\v}}{\w}\right|_{\w = 0} &=
+     - [\v]_\cross,
+\\
+\left.\frac{\partial^2 \tilde{\v}}{\partial \w^2}\right|_{\w = 0} &=
+-(\v \otimes I)
++ \left.\frac{1}{2} \middle[ \e^i \otimes (\e^i \otimes \v +  \v \otimes \e^i) \right].
+\end{align*}
+
+\bibliographystyle{plain}
+\bibliography{OptimizingRotations}
+
+\end{document}
