@@ -116,6 +116,7 @@ if(NOT TARGET Catch2::Catch2 AND (CMAKE_SOURCE_DIR STREQUAL PROJECT_SOURCE_DIR))
 endif()
 
 add_executable(unit_tests unit_tests.cc)
+set_target_properties(unit_tests PROPERTIES CXX_STANDARD 14)
 
 target_link_libraries(unit_tests PUBLIC
 	Catch2::Catch2
