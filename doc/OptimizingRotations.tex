@@ -101,7 +101,7 @@
 \def\z{\vec{z}}
 \def\u{\vec{u}}
 \def\f{\vec{f}}
-\def\w{\vec{w}}
+\def\w{\boldsymbol{\omega}}
 \def\wn{\norm{\w}}
 \def\p{\vec{p}}
 \def\v{\vec{v}}
@@ -188,6 +188,7 @@ parametrization, though they only provide gradient formulas, not Hessian
 formulas (and work with quaternions instead of Rodrigues' rotation formula).
 
 \section{Representation and Exponential Map}
+\label{sec:representation}
 We denote our infinitesimal rotation by vector $\w$, which encodes the rotation axis $\frac{\w}{\norm{\w}}$
 and angle $\norm{\w}$.
 We can apply the rotation computed by the exponential map to a vector $\v$ using Rodrigues' rotation formula.
@@ -299,13 +300,62 @@ Taylor expansions to evaluate the problematic terms for $\wn \ll 1$:
 \label{sec:around_identity}
 Most of the terms in the gradient and Hessian formulas vanish when we evaluate at $\w = 0$. This means that if we update the
 parametrization at every iteration of Newton's method, we can use much simpler formulas:
-\begin{align*}
-\left.\pder{\tilde{\v}}{\w}\right|_{\w = 0} &=
+\begin{equation*}
+\left.\pder{\tilde{\v}}{\w}\right|_{\w = 0} =
      - [\v]_\cross,
-\\
-\left.\frac{\partial^2 \tilde{\v}}{\partial \w^2}\right|_{\w = 0} &=
+\quad \quad
+\left.\frac{\partial^2 \tilde{\v}}{\partial \w^2}\right|_{\w = 0} =
 -(\v \otimes I)
 + \left.\frac{1}{2} \middle[ \e^i \otimes (\e^i \otimes \v +  \v \otimes \e^i) \right].
+\end{equation*}
+
+\section{Full Rotation Matrix and its Derivatives}
+As mentioned in \pr{sec:representation}, could evaluate the rotation matrix and
+its derivatives using the formulas derived above for a single rotated vector:
+apply them to each of the three canonical basis
+vectors $\e^0, \e^1, \e^2$. However, due to the basis vectors' sparsity,
+we can derive more efficient expressions. The rotation matrix is:
+$$
+R(\w) = I \cos(\wn) + (\w \otimes \w) \frac{1 - \cos(\wn)}{\wn^2} + [\w]_\cross \frac{\sin(\wn)}{\wn}.
+$$
+The gradients and Hessians are now $3^\text{rd}$ and $4^\text{th}$ order tensors, respectively. The left two
+indices of these tensors pick a component of $R$ and the remaining indices pick differentiation variables
+from $\w$.
+\begin{align*}
+    \pder{R}{\w}
+    &=
+         ([\e^i]_\cross \otimes \e^i - I \otimes \w) \frac{\sin(\wn)}{\wn}
+         + \big[(\e^i \otimes \w + \w \otimes \e^i) \otimes \e^i \big] \left(\frac{1 - \cos(\wn)}{\wn^2}\right)
+    \\ &\quad
+         + (\w \otimes \w \otimes \w)\left(\frac{2 \cos(\wn) - 2 + \wn \sin(\wn)}{\wn^4}\right)
+         + \big([\w]_\times \otimes \w\big)\frac{\wn \cos(\wn) - \sin(\wn)}{\wn^3},
+\\ \frac{\partial^2 R}{\partial \w^2}
+    &=
+        -(I \otimes I) \frac{\sin(\wn)}{\wn}
+        +\big([\e^i]_\cross \otimes \e^i - I \otimes \w\big) \otimes \w \left(\frac{\wn \cos(\wn) - \sin(\wn)}{\wn^3}\right)
+    \\ &\quad
+        + \big[(\e^i \otimes \e^k + \e^k \otimes \e^i) \otimes \e^i \otimes \e^k\big] \left(\frac{1 - \cos(\wn)}{\wn^2}\right)
+    \\ &\quad
+        + \big[(\e^i \otimes \w + \w \otimes \e^i) \otimes \e^i \otimes \w \big] \left(\frac{2 \cos(\wn) - 2 + \wn \sin(\wn)}{\wn^4}\right)
+    \\ &\quad
+        + \big[(\e^i \otimes \w \otimes \w + \w \otimes \e^i \otimes \w + \w \otimes \w \otimes \e^i \big] \otimes \e^i \left(\frac{2 \cos(\wn) - 2 + \wn \sin(\wn)}{\wn^4}\right)
+    \\ &\quad
+        + \big(\w \otimes \w \otimes \w \otimes \w\big) \left( \frac{8 + (\wn^2 - 8) \cos(\wn) - 5 \wn \sin(\wn)}{\wn^6}\right)
+    \\ &\quad
+        + \big([\e^i]_\cross \otimes \w \otimes \e^i + [\w]_\cross \otimes \e^i \otimes \e^i\big) \frac{\wn \cos(\wn) - \sin(\wn)}{\wn^3}
+    \\ &\quad
+        - \big([\w]_\times \otimes \w\big) \otimes \w \left(\frac{3 \wn \cos(\wn) + (\wn^2 - 3) \sin(\wn)}{\wn^5}\right)
+\\ &=
+        -(I \otimes I) \frac{\sin(\wn)}{\wn}
+        +\big([\e^i]_\cross \otimes (\e^i \otimes \w + \w \otimes \e^i) - I \otimes \w \otimes \w + [\w]_\cross \otimes I \big) \left(\frac{\wn \cos(\wn) - \sin(\wn)}{\wn^3}\right)
+    \\ &\quad
+        + \big[\e^i \otimes \e^k \otimes (\e^i \otimes \e^k + \e^k \otimes \e^i)\big] \left(\frac{1 - \cos(\wn)}{\wn^2}\right)
+    \\ &\quad
+        + \big[(\e^i \otimes \w + \w \otimes \e^i) \otimes (\e^i \otimes \w + \w \otimes \e^i) + \w \otimes \w \otimes I \big] \left(\frac{2 \cos(\wn) - 2 + \wn \sin(\wn)}{\wn^4}\right)
+    \\ &\quad
+        + \big(\w \otimes \w \otimes \w \otimes \w\big) \left( \frac{8 + (\wn^2 - 8) \cos(\wn) - 5 \wn \sin(\wn)}{\wn^6}\right)
+    \\ &\quad
+        - \big([\w]_\times \otimes \w\big) \otimes \w \left(\frac{3 \wn \cos(\wn) + (\wn^2 - 3) \sin(\wn)}{\wn^5}\right).
 \end{align*}
 
 \bibliographystyle{plain}

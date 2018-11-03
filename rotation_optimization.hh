@@ -5,7 +5,7 @@
 //  Useful functions for optimizing over the space of rotations:
 //  We use the tangent space to SO(3) at a reference rotation as the optimization
 //  domain and provide functions to apply the represented rotation to a given
-//  vector and compute gradients/Hessians of this rotated vector.
+//  vector and compute gradients/Hessians of the rotation matrix/rotated vector.
 */
 //  Author:  Julian Panetta (jpanetta), julian.panetta@gmail.com
 //  Created:  11/01/2018 11:38:57
