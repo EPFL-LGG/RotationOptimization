@@ -1,4 +1,12 @@
+3rdparty
 build
 build_*
 results
 TODO
+*.aux
+*.bbl
+*.blg
+*.fdb_latexmk
+*.fls
+*.log
+*.out
