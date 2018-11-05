@@ -63,11 +63,19 @@ Eigen::Tensor<double, 4> hess_rotation_matrix(const V3d &w);
 // component i) in hess_comp[i].
 void hess_rotated_vector(const V3d &w, const V3d &v, std::array<Eigen::Ref<M3d>, 3> hess_comp);
 
+// Hessian of R(w) v. This is a third order tensor:
+//      H_ijk = d [R(w) v]_i / (dw_j dw_k)
+// We output the i^th slice of this tensor (the Hessian of rotated vector
+// component i) in hess_comp[i].
+inline void hess_rotated_vector(const V3d &w, const V3d &v, std::array<M3d, 3> &hess_comp) {
+    std::array<Eigen::Ref<M3d>, 3> hc_refs{{hess_comp[0], hess_comp[1], hess_comp[2]}};
+    hess_rotated_vector(w, v, hc_refs);
+}
+
 // The Hessian of R(w) A for 3xN matrix A; this is a fourth order tensor:
 //      H_ijkl = d [R(w) A]_ij / (dw_k dw_l)
 template<int N>
 Eigen::Tensor<double, 4> hess_rotated_matrix(const V3d &w, const Eigen::Matrix<double, 3, N> &A);
-
 }
 
 #endif /* end of include guard: ROTATION_OPTIMIZATION_HH */

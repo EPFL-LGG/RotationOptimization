@@ -135,6 +135,21 @@ TEST_CASE("Hessian rotated vector tests", "[Hessian rotated vector]" ) {
             }
         }
     }
+
+    SECTION("Storage-backed interface") {
+        std::array<M3d, 3> hess_comp_storage;
+        for (size_t i = 0; i < 3; ++i) {
+            for (size_t t = 0; t < 10000; ++t) {
+                auto w = randomAxisAngle(0.9 * M_PI);
+                hess_rotated_vector(w, I.col(i), hess_comp);
+                hess_rotated_vector(w, I.col(i), hess_comp_storage);
+                double diff = 0;
+                for (size_t c = 0; c < 3; ++c)
+                    diff += (hess_comp[c] - hess_comp_storage[c]).norm();
+                REQUIRE(diff == 0);
+            }
+        }
+    }
 }
 
 double norm(const Eigen::Tensor<double, 3> &a) {
