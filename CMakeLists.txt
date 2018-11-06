@@ -99,34 +99,32 @@ endif()
 ################################################################################
 add_library(rotation_optimization rotation_optimization.cc)
 target_link_libraries(rotation_optimization PUBLIC Eigen3::Eigen)
+target_include_directories(rotation_optimization PUBLIC .)
 set_target_properties(rotation_optimization PROPERTIES CXX_STANDARD 11)
 set_target_properties(rotation_optimization PROPERTIES CXX_STANDARD_REQUIRED ON)
 
 ################################################################################
 # Unit tests
 ################################################################################
-# Catch2
-if(NOT TARGET Catch2::Catch2 AND (CMAKE_SOURCE_DIR STREQUAL PROJECT_SOURCE_DIR))
-    rotopt_download_project(Catch2
-        URL     https://github.com/catchorg/Catch2/archive/v2.3.0.tar.gz
-        URL_MD5 1fc90ff3b7b407b83057537f4136489e
+if(CMAKE_SOURCE_DIR STREQUAL PROJECT_SOURCE_DIR)
+    # Catch2
+    if(NOT TARGET Catch2::Catch2)
+        rotopt_download_project(Catch2
+            URL     https://github.com/catchorg/Catch2/archive/v2.3.0.tar.gz
+            URL_MD5 1fc90ff3b7b407b83057537f4136489e
+        )
+        add_subdirectory(${ROTOPT_EXTERNAL}/Catch2)
+        list(APPEND CMAKE_MODULE_PATH ${ROTOPT_EXTERNAL}/Catch2/contrib)
+    endif()
+
+    add_executable(unit_tests unit_tests.cc)
+    set_target_properties(unit_tests PROPERTIES CXX_STANDARD 14)
+
+    target_link_libraries(unit_tests PUBLIC
+        Catch2::Catch2
+        rotation_optimization
+        warnings::all
     )
-    add_subdirectory(${ROTOPT_EXTERNAL}/Catch2)
-    list(APPEND CMAKE_MODULE_PATH ${ROTOPT_EXTERNAL}/Catch2/contrib)
+
+    target_compile_options(unit_tests PRIVATE -Wno-unused-parameter)
 endif()
-
-add_executable(unit_tests unit_tests.cc)
-set_target_properties(unit_tests PROPERTIES CXX_STANDARD 14)
-
-target_link_libraries(unit_tests PUBLIC
-	Catch2::Catch2
-    rotation_optimization
-	warnings::all
-)
-
-target_compile_options(unit_tests PRIVATE -Wno-unused-parameter)
-
-# Register tests
-include(CTest)
-include(Catch)
-catch_discover_tests(unit_tests)
