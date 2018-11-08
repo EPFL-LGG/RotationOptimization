@@ -6,7 +6,9 @@ namespace rotation_optimization {
 ////////////////////////////////////////////////////////////////////////////////
 // Numerically robust formulas for the trig expressions in our formulas
 ////////////////////////////////////////////////////////////////////////////////
-constexpr double theta_sq_crossover_threshold = 1e-8;
+// Choose a good tradeoff between catastrophic cancellation in the direct
+// calculation and truncation error in the Taylor series approximation.
+constexpr double theta_sq_crossover_threshold = 2e-6;
 // sin(theta) / theta
 inline double sinc(double theta, double theta_sq) {
     if (theta_sq < theta_sq_crossover_threshold) { return 1.0 - theta_sq / 6.0; }
