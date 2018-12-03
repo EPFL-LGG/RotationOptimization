@@ -83,4 +83,6 @@ struct rotation_optimization {
     static Mat3 cross_product_matrix(const Vec3 &v);
 };
 
+#include "rotation_optimization.inl"
+
 #endif /* end of include guard: ROTATION_OPTIMIZATION_HH */

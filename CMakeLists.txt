@@ -97,11 +97,9 @@ endif()
 ################################################################################
 # Rotation optimization library
 ################################################################################
-add_library(rotation_optimization rotation_optimization.cc)
-target_link_libraries(rotation_optimization PUBLIC Eigen3::Eigen)
-target_include_directories(rotation_optimization PUBLIC .)
-set_target_properties(rotation_optimization PROPERTIES CXX_STANDARD 11)
-set_target_properties(rotation_optimization PROPERTIES CXX_STANDARD_REQUIRED ON)
+add_library(rotation_optimization INTERFACE)
+target_link_libraries(rotation_optimization INTERFACE Eigen3::Eigen)
+target_include_directories(rotation_optimization INTERFACE .)
 
 ################################################################################
 # Unit tests
