@@ -16,66 +16,71 @@
 #include <unsupported/Eigen/CXX11/Tensor>
 #include <array>
 
-namespace rotation_optimization {
+template<typename Real_>
+struct rotation_optimization {
+    using Vec3 = Eigen::Matrix<Real_, 3, 1>;
+    using Mat3 = Eigen::Matrix<Real_, 3, 3>;
 
-using V3d = Eigen::Vector3d;
-using M3d = Eigen::Matrix3d;
+    ////////////////////////////////////////////////////////////////////////////////
+    // Rotation matrix, rotated vectors, and rotated matrices
+    ////////////////////////////////////////////////////////////////////////////////
+    // Compute R(w)
+    static Mat3 rotation_matrix(const Vec3 &w);
 
-////////////////////////////////////////////////////////////////////////////////
-// Rotation matrix, rotated vectors, and rotated matrices
-////////////////////////////////////////////////////////////////////////////////
-// Compute R(w)
-M3d rotation_matrix(const V3d &w);
+    // Compute R(w) v
+    static Vec3 rotated_vector(const Vec3 &w, const Vec3 &v);
 
-// Compute R(w) v
-V3d rotated_vector(const V3d &w, const V3d &v);
+    // Compute R(w) A
+    template<int N>
+    static Eigen::Matrix<Real_, 3, N> rotated_matrix(const Vec3 &w, const Eigen::Matrix<Real_, 3, N> &A);
 
-// Compute R(w) A
-template<int N>
-Eigen::Matrix<double, 3, N> rotated_matrix(const V3d &w, const Eigen::Matrix<double, 3, N> &A);
+    ////////////////////////////////////////////////////////////////////////////////
+    // Gradient of rotation matrix, rotated vectors, and rotated matrices
+    ////////////////////////////////////////////////////////////////////////////////
+    // Gradient of R(w). This is a third order tensor:
+    //      g_ijk = D [R(w)]_ij / dw_k
+    static Eigen::Tensor<Real_, 3> grad_rotation_matrix(const Vec3 &w);
 
-////////////////////////////////////////////////////////////////////////////////
-// Gradient of rotation matrix, rotated vectors, and rotated matrices
-////////////////////////////////////////////////////////////////////////////////
-// Gradient of R(w). This is a third order tensor:
-//      g_ijk = D [R(w)]_ij / dw_k
-Eigen::Tensor<double, 3> grad_rotation_matrix(const V3d &w);
+    // Gradient of R(w) v. This is a second order tensor, returned as a 3x3 matrix:
+    //      g_ij = D [R(w) v]_i / dw_j
+    static Mat3 grad_rotated_vector(const Vec3 &w, const Vec3 &v);
 
-// Gradient of R(w) v. This is a second order tensor, returned as a 3x3 matrix:
-//      g_ij = D [R(w) v]_i / dw_j
-M3d grad_rotated_vector(const V3d &w, const V3d &v);
+    // Gradient of R(w) A. This is a third order tensor:
+    //      g_ijk = D [R(w) A]_ij / dw_k
+    template<int N>
+    static Eigen::Tensor<Real_, 3> grad_rotated_matrix(const Vec3 &w, const Eigen::Matrix<Real_, 3, N> &A);
 
-// Gradient of R(w) A. This is a third order tensor:
-//      g_ijk = D [R(w) A]_ij / dw_k
-template<int N>
-Eigen::Tensor<double, 3> grad_rotated_matrix(const V3d &w, const Eigen::Matrix<double, 3, N> &A);
+    ////////////////////////////////////////////////////////////////////////////////
+    // Hessian of rotation matrix, rotated vectors, and rotated matrices
+    ////////////////////////////////////////////////////////////////////////////////
+    // The Hessian of R(w). this is a fourth order tensor:
+    //      H_ijkl = d [R(w)]_ij / (dw_k dw_l)
+    static Eigen::Tensor<Real_, 4> hess_rotation_matrix(const Vec3 &w);
 
-////////////////////////////////////////////////////////////////////////////////
-// Hessian of rotation matrix, rotated vectors, and rotated matrices
-////////////////////////////////////////////////////////////////////////////////
-// The Hessian of R(w). this is a fourth order tensor:
-//      H_ijkl = d [R(w)]_ij / (dw_k dw_l)
-Eigen::Tensor<double, 4> hess_rotation_matrix(const V3d &w);
+    // Hessian of R(w) v. This is a third order tensor:
+    //      H_ijk = d [R(w) v]_i / (dw_j dw_k)
+    // We output the i^th slice of this tensor (the Hessian of rotated vector
+    // component i) in hess_comp[i].
+    static void hess_rotated_vector(const Vec3 &w, const Vec3 &v, std::array<Eigen::Ref<Mat3>, 3> hess_comp);
 
-// Hessian of R(w) v. This is a third order tensor:
-//      H_ijk = d [R(w) v]_i / (dw_j dw_k)
-// We output the i^th slice of this tensor (the Hessian of rotated vector
-// component i) in hess_comp[i].
-void hess_rotated_vector(const V3d &w, const V3d &v, std::array<Eigen::Ref<M3d>, 3> hess_comp);
+    // Hessian of R(w) v. This is a third order tensor:
+    //      H_ijk = d [R(w) v]_i / (dw_j dw_k)
+    // We output the i^th slice of this tensor (the Hessian of rotated vector
+    // component i) in hess_comp[i].
+    static void hess_rotated_vector(const Vec3 &w, const Vec3 &v, std::array<Mat3, 3> &hess_comp) {
+        std::array<Eigen::Ref<Mat3>, 3> hc_refs{{hess_comp[0], hess_comp[1], hess_comp[2]}};
+        hess_rotated_vector(w, v, hc_refs);
+    }
 
-// Hessian of R(w) v. This is a third order tensor:
-//      H_ijk = d [R(w) v]_i / (dw_j dw_k)
-// We output the i^th slice of this tensor (the Hessian of rotated vector
-// component i) in hess_comp[i].
-inline void hess_rotated_vector(const V3d &w, const V3d &v, std::array<M3d, 3> &hess_comp) {
-    std::array<Eigen::Ref<M3d>, 3> hc_refs{{hess_comp[0], hess_comp[1], hess_comp[2]}};
-    hess_rotated_vector(w, v, hc_refs);
-}
+    // The Hessian of R(w) A for 3xN matrix A; this is a fourth order tensor:
+    //      H_ijkl = d [R(w) A]_ij / (dw_k dw_l)
+    template<int N>
+    static Eigen::Tensor<Real_, 4> hess_rotated_matrix(const Vec3 &w, const Eigen::Matrix<Real_, 3, N> &A);
 
-// The Hessian of R(w) A for 3xN matrix A; this is a fourth order tensor:
-//      H_ijkl = d [R(w) A]_ij / (dw_k dw_l)
-template<int N>
-Eigen::Tensor<double, 4> hess_rotated_matrix(const V3d &w, const Eigen::Matrix<double, 3, N> &A);
-}
+    ////////////////////////////////////////////////////////////////////////////////
+    // Helper functions
+    ////////////////////////////////////////////////////////////////////////////////
+    static Mat3 cross_product_matrix(const Vec3 &v);
+};
 
 #endif /* end of include guard: ROTATION_OPTIMIZATION_HH */
