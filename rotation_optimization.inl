@@ -70,8 +70,8 @@ auto rotation_optimization<Real_>::cross_product_matrix(const Vec3 &v) -> Mat3 {
 template<typename Real_>
 auto rotation_optimization<Real_>::rotation_matrix(const Vec3 &w) -> Mat3 {
     const Real_ theta_sq = w.squaredNorm();
-    const Real_ theta    = std::sqrt(theta_sq);
-    const Real_ cos_th   = std::cos(theta);
+    const Real_ theta    = sqrt(theta_sq);
+    const Real_ cos_th   = cos(theta);
     return cos_th * Mat3::Identity() + (w * w.transpose()) * one_minus_cos_div_theta_sq(theta, theta_sq) + cross_product_matrix(w) * sinc(theta, theta_sq);
 }
 
@@ -79,8 +79,8 @@ auto rotation_optimization<Real_>::rotation_matrix(const Vec3 &w) -> Mat3 {
 template<typename Real_>
 auto rotation_optimization<Real_>::rotated_vector(const Vec3 &w, const Vec3 &v) -> Vec3 {
     const Real_ theta_sq = w.squaredNorm();
-    const Real_ theta    = std::sqrt(theta_sq);
-    const Real_ cos_th   = std::cos(theta);
+    const Real_ theta    = sqrt(theta_sq);
+    const Real_ cos_th   = cos(theta);
     return v * cos_th + w * ((w.dot(v)) * one_minus_cos_div_theta_sq(theta, theta_sq)) + w.cross(v) * sinc(theta, theta_sq);
 }
 
@@ -88,8 +88,8 @@ template<typename Real_>
 template<int N>
 auto rotation_optimization<Real_>::rotated_matrix(const Vec3 &w, const Eigen::Matrix<Real_, 3, N> &A) -> Eigen::Matrix<Real_, 3, N> {
     const Real_ theta_sq = w.squaredNorm();
-    const Real_ theta    = std::sqrt(theta_sq);
-    const Real_ cos_th   = std::cos(theta);
+    const Real_ theta    = sqrt(theta_sq);
+    const Real_ cos_th   = cos(theta);
     return A * cos_th + w * (w.transpose() * A) * one_minus_cos_div_theta_sq(theta, theta_sq) + (cross_product_matrix(w) * A) * sinc(theta, theta_sq);
 }
 
@@ -113,7 +113,7 @@ auto rotation_optimization<Real_>::grad_rotation_matrix(const Vec3 &w) -> Eigen:
         return g;
     }
 
-    const Real_ theta = std::sqrt(theta_sq);
+    const Real_  theta = sqrt(theta_sq);
     const Real_ coeff0 = sinc(theta, theta_sq);
     const Real_ coeff1 = one_minus_cos_div_theta_sq(theta, theta_sq);
     const Real_ coeff2 = two_cos_minus_2_plus_theta_sin_div_theta_pow_4(theta, theta_sq);
@@ -154,7 +154,7 @@ auto rotation_optimization<Real_>::grad_rotated_vector(const Vec3 &w, const Vec3
     // Use simpler formula for variation around the identity
     if (theta_sq == 0) { return -cross_product_matrix(v); }
 
-    const Real_ theta    = std::sqrt(theta_sq);
+    const Real_ theta    = sqrt(theta_sq);
     const Real_ w_dot_v  = w.dot(v);
 
     Mat3 result = (v * w.transpose() + cross_product_matrix(v)) * -sinc(theta, theta_sq);
@@ -186,7 +186,7 @@ auto rotation_optimization<Real_>::grad_rotated_matrix(const Vec3 &w, const Eige
         return g;
     }
 
-    const Real_ theta = std::sqrt(theta_sq);
+    const Real_ theta = sqrt(theta_sq);
     const Real_ coeff0 = -sinc(theta, theta_sq);
     const Real_ coeff1 = one_minus_cos_div_theta_sq(theta, theta_sq);
     const Real_ coeff2 = two_cos_minus_2_plus_theta_sin_div_theta_pow_4(theta, theta_sq);
@@ -236,7 +236,7 @@ auto rotation_optimization<Real_>::hess_rotation_matrix(const Vec3 &w) -> Eigen:
         return H;
     }
 
-    const Real_ theta  = std::sqrt(theta_sq);
+    const Real_ theta  = sqrt(theta_sq);
     const Real_ coeff0 = sinc                                                                     (theta, theta_sq),
                  coeff1 = theta_cos_minus_sin_div_theta_cubed                                      (theta, theta_sq),
                  coeff2 = one_minus_cos_div_theta_sq                                               (theta, theta_sq),
@@ -321,7 +321,7 @@ hess_rotated_vector(const Vec3 &w, const Vec3 &v,
         return;
     }
 
-    const Real_ theta   = std::sqrt(theta_sq);
+    const Real_ theta   = sqrt(theta_sq);
     const Real_ w_dot_v = w.dot(v);
     Mat3 w_otimes_w = w * w.transpose();
     Mat3 w_otimes_v = w * v.transpose();
@@ -367,7 +367,7 @@ auto rotation_optimization<Real_>::hess_rotated_matrix(const Vec3 &w, const Eige
         return H;
     }
 
-    const Real_ theta  = std::sqrt(theta_sq);
+    const Real_ theta  = sqrt(theta_sq);
     const Real_ coeff0 = sinc                                                                     (theta, theta_sq),
                  coeff1 = theta_cos_minus_sin_div_theta_cubed                                      (theta, theta_sq),
                  coeff2 = one_minus_cos_div_theta_sq                                               (theta, theta_sq),
