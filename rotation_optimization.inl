@@ -9,6 +9,13 @@
 // calculation and truncation error in the Taylor series approximation.
 constexpr double theta_sq_crossover_threshold = 2e-6;
 
+// cos(theta); needed for robustness when Real_ is an automatic differentiation type
+template<typename Real_>
+Real_ cos(Real_ theta, Real_ theta_sq) {
+    if (theta_sq < theta_sq_crossover_threshold) { return 1.0 - 0.5 * theta_sq + theta_sq * theta_sq / 24; }
+    return cos(theta);
+}
+
 // sin(theta) / theta
 template<typename Real_>
 Real_ sinc(Real_ theta, Real_ theta_sq) {
@@ -69,9 +76,13 @@ auto rotation_optimization<Real_>::cross_product_matrix(const Vec3 &v) -> Mat3 {
 // Compute R(w)
 template<typename Real_>
 auto rotation_optimization<Real_>::rotation_matrix(const Vec3 &w) -> Mat3 {
+    // When theta_sq = 0, sqrt(theta_sq) is non-differentiable, so the autodiff code will produce "NaN"s for theta's derivative.
+    // However, using the taylor expansions of the output terms ignores theta (and its derivative) in the small angle case,
+    // so this can safely be ignored.
     const Real_ theta_sq = w.squaredNorm();
     const Real_ theta    = sqrt(theta_sq);
-    const Real_ cos_th   = cos(theta);
+    const Real_ cos_th   = cos(theta, theta_sq);
+
     return cos_th * Mat3::Identity() + (w * w.transpose()) * one_minus_cos_div_theta_sq(theta, theta_sq) + cross_product_matrix(w) * sinc(theta, theta_sq);
 }
 
@@ -80,7 +91,7 @@ template<typename Real_>
 auto rotation_optimization<Real_>::rotated_vector(const Vec3 &w, const Vec3 &v) -> Vec3 {
     const Real_ theta_sq = w.squaredNorm();
     const Real_ theta    = sqrt(theta_sq);
-    const Real_ cos_th   = cos(theta);
+    const Real_ cos_th   = cos(theta, theta_sq);
     return v * cos_th + w * ((w.dot(v)) * one_minus_cos_div_theta_sq(theta, theta_sq)) + w.cross(v) * sinc(theta, theta_sq);
 }
 
@@ -89,7 +100,8 @@ template<int N>
 auto rotation_optimization<Real_>::rotated_matrix(const Vec3 &w, const Eigen::Matrix<Real_, 3, N> &A) -> Eigen::Matrix<Real_, 3, N> {
     const Real_ theta_sq = w.squaredNorm();
     const Real_ theta    = sqrt(theta_sq);
-    const Real_ cos_th   = cos(theta);
+    const Real_ cos_th   = cos(theta, theta_sq);
+
     return A * cos_th + w * (w.transpose() * A) * one_minus_cos_div_theta_sq(theta, theta_sq) + (cross_product_matrix(w) * A) * sinc(theta, theta_sq);
 }
 
@@ -105,7 +117,9 @@ auto rotation_optimization<Real_>::grad_rotation_matrix(const Vec3 &w) -> Eigen:
 
     const Real_ theta_sq = w.squaredNorm();
     // Use simpler formula for variation around the identity
-    if (theta_sq == 0) {
+    // (But only if we're using a native floating point type;
+    //  for autodiff types, we need the full formula).
+    if ((theta_sq == 0) && (std::is_arithmetic<Real_>::value)) {
         // [e^i]_cross otimes e^i
         g(1, 2, 0) = -1; g(2, 1, 0) =  1;
         g(0, 2, 1) =  1; g(2, 0, 1) = -1;
@@ -152,7 +166,9 @@ auto rotation_optimization<Real_>::grad_rotated_vector(const Vec3 &w, const Vec3
     const Real_ theta_sq = w.squaredNorm();
 
     // Use simpler formula for variation around the identity
-    if (theta_sq == 0) { return -cross_product_matrix(v); }
+    // (But only if we're using a native floating point type;
+    //  for autodiff types, we need the full formula).
+    if ((theta_sq == 0) && (std::is_arithmetic<Real_>::value)) { return -cross_product_matrix(v); }
 
     const Real_ theta    = sqrt(theta_sq);
     const Real_ w_dot_v  = w.dot(v);
@@ -174,8 +190,10 @@ auto rotation_optimization<Real_>::grad_rotated_matrix(const Vec3 &w, const Eige
     Eigen::Tensor<Real_, 3> g(3, ncols, 3);
 
     // Use simpler formula for variation around the identity
+    // (But only if we're using a native floating point type;
+    //  for autodiff types, we need the full formula).
     const Real_ theta_sq = w.squaredNorm();
-    if (theta_sq == 0) {
+    if ((theta_sq == 0) && (std::is_arithmetic<Real_>::value)) {
         for (int j = 0; j < ncols; ++j) {
             Mat3 tmp = -cross_product_matrix(A.col(j));
             for (int i = 0; i < 3; ++i) {
@@ -221,7 +239,9 @@ auto rotation_optimization<Real_>::hess_rotation_matrix(const Vec3 &w) -> Eigen:
 
     const Real_ theta_sq = w.squaredNorm();
     // Use simpler formula for variation around the identity
-    if (theta_sq == 0) {
+    // (But only if we're using a native floating point type;
+    //  for autodiff types, we need the full formula).
+    if ((theta_sq == 0) && (std::is_arithmetic<Real_>::value)) {
         // - I otimes I
         for (int i = 0; i < 3; ++i)
             for (int k = 0; k < 3; ++k)
@@ -238,11 +258,11 @@ auto rotation_optimization<Real_>::hess_rotation_matrix(const Vec3 &w) -> Eigen:
 
     const Real_ theta  = sqrt(theta_sq);
     const Real_ coeff0 = sinc                                                                     (theta, theta_sq),
-                 coeff1 = theta_cos_minus_sin_div_theta_cubed                                      (theta, theta_sq),
-                 coeff2 = one_minus_cos_div_theta_sq                                               (theta, theta_sq),
-                 coeff3 = two_cos_minus_2_plus_theta_sin_div_theta_pow_4                           (theta, theta_sq),
-                 coeff4 = eight_plus_theta_sq_minus_eight_cos_minus_five_theta_sin_div_theta_pow_6 (theta, theta_sq),
-                 coeff5 = three_theta_cos_plus_theta_sq_minus_3_sin_div_theta_pow_5                (theta, theta_sq);
+                 coeff1 = theta_cos_minus_sin_div_theta_cubed                                     (theta, theta_sq),
+                 coeff2 = one_minus_cos_div_theta_sq                                              (theta, theta_sq),
+                 coeff3 = two_cos_minus_2_plus_theta_sin_div_theta_pow_4                          (theta, theta_sq),
+                 coeff4 = eight_plus_theta_sq_minus_eight_cos_minus_five_theta_sin_div_theta_pow_6(theta, theta_sq),
+                 coeff5 = three_theta_cos_plus_theta_sq_minus_3_sin_div_theta_pow_5               (theta, theta_sq);
     Mat3 w_cross = cross_product_matrix(w);
 
     // -(I otimes I) sinc(theta)
@@ -314,8 +334,10 @@ hess_rotated_vector(const Vec3 &w, const Vec3 &v,
     const Real_ theta_sq = w.squaredNorm();
 
     // Use simpler formula for variation around the identity
+    // (But only if we're using a native floating point type;
+    //  for autodiff types, we need the full formula).
     Mat3 I(Mat3::Identity());
-    if (theta_sq == 0) {
+    if ((theta_sq == 0) && (std::is_arithmetic<Real_>::value)) {
         for (size_t i = 0; i < 3; ++i)
             hess_comp[i] = -v[i] * I + 0.5 * (I.col(i) * v.transpose() + v * I.row(i));
         return;
@@ -326,11 +348,11 @@ hess_rotated_vector(const Vec3 &w, const Vec3 &v,
     Mat3 w_otimes_w = w * w.transpose();
     Mat3 w_otimes_v = w * v.transpose();
     const Real_ coeff0 = sinc                                                                               (theta, theta_sq),
-                 coeff1 = theta_cos_minus_sin_div_theta_cubed                                                (theta, theta_sq),
-                 coeff2 = one_minus_cos_div_theta_sq                                                         (theta, theta_sq),
-                 coeff3 = two_cos_minus_2_plus_theta_sin_div_theta_pow_4                                     (theta, theta_sq),
-                 coeff4 = w_dot_v * eight_plus_theta_sq_minus_eight_cos_minus_five_theta_sin_div_theta_pow_6 (theta, theta_sq),
-                 coeff5 = three_theta_cos_plus_theta_sq_minus_3_sin_div_theta_pow_5                          (theta, theta_sq);
+                 coeff1 = theta_cos_minus_sin_div_theta_cubed                                               (theta, theta_sq),
+                 coeff2 = one_minus_cos_div_theta_sq                                                        (theta, theta_sq),
+                 coeff3 = two_cos_minus_2_plus_theta_sin_div_theta_pow_4                                    (theta, theta_sq),
+                 coeff4 = w_dot_v * eight_plus_theta_sq_minus_eight_cos_minus_five_theta_sin_div_theta_pow_6(theta, theta_sq),
+                 coeff5 = three_theta_cos_plus_theta_sq_minus_3_sin_div_theta_pow_5                         (theta, theta_sq);
     Mat3 v_cross = cross_product_matrix(v);
     Vec3 v_cross_w = v.cross(w);
     for (size_t i = 0; i < 3; ++i) {
@@ -352,8 +374,10 @@ auto rotation_optimization<Real_>::hess_rotated_matrix(const Vec3 &w, const Eige
     const Real_ theta_sq = w.squaredNorm();
 
     // Use simpler formula for variation around the identity
+    // (But only if we're using a native floating point type;
+    //  for autodiff types, we need the full formula).
     Mat3 I(Mat3::Identity());
-    if (theta_sq == 0) {
+    if ((theta_sq == 0) && (std::is_arithmetic<Real_>::value)) {
         H.setZero();
         for (int j = 0; j < numCols; ++j) {
             for (int i = 0; i < 3; ++i) {
@@ -369,11 +393,11 @@ auto rotation_optimization<Real_>::hess_rotated_matrix(const Vec3 &w, const Eige
 
     const Real_ theta  = sqrt(theta_sq);
     const Real_ coeff0 = sinc                                                                     (theta, theta_sq),
-                 coeff1 = theta_cos_minus_sin_div_theta_cubed                                      (theta, theta_sq),
-                 coeff2 = one_minus_cos_div_theta_sq                                               (theta, theta_sq),
-                 coeff3 = two_cos_minus_2_plus_theta_sin_div_theta_pow_4                           (theta, theta_sq),
-                 coeff4 = eight_plus_theta_sq_minus_eight_cos_minus_five_theta_sin_div_theta_pow_6 (theta, theta_sq),
-                 coeff5 = three_theta_cos_plus_theta_sq_minus_3_sin_div_theta_pow_5                (theta, theta_sq);
+                 coeff1 = theta_cos_minus_sin_div_theta_cubed                                     (theta, theta_sq),
+                 coeff2 = one_minus_cos_div_theta_sq                                              (theta, theta_sq),
+                 coeff3 = two_cos_minus_2_plus_theta_sin_div_theta_pow_4                          (theta, theta_sq),
+                 coeff4 = eight_plus_theta_sq_minus_eight_cos_minus_five_theta_sin_div_theta_pow_6(theta, theta_sq),
+                 coeff5 = three_theta_cos_plus_theta_sq_minus_3_sin_div_theta_pow_5               (theta, theta_sq);
     H.setZero();
     for (int j = 0; j < numCols; ++j) { // Compute the Hessian of each rotated column vector of A
         const auto &v = A.col(j);
