@@ -92,7 +92,7 @@ auto rotation_optimization<Real_>::rotated_vector(const Vec3 &w, const Vec3 &v) 
     const Real_ theta_sq = w.squaredNorm();
     const Real_ theta    = sqrt(theta_sq);
     const Real_ cos_th   = cos(theta, theta_sq);
-    return v * cos_th + w * ((w.dot(v)) * one_minus_cos_div_theta_sq(theta, theta_sq)) + w.cross(v) * sinc(theta, theta_sq);
+    return v * cos_th + w * (w.dot(v) * one_minus_cos_div_theta_sq(theta, theta_sq)) + w.cross(v) * sinc(theta, theta_sq);
 }
 
 template<typename Real_>
@@ -102,7 +102,7 @@ auto rotation_optimization<Real_>::rotated_matrix(const Vec3 &w, const Eigen::Ma
     const Real_ theta    = sqrt(theta_sq);
     const Real_ cos_th   = cos(theta, theta_sq);
 
-    return A * cos_th + w * (w.transpose() * A) * one_minus_cos_div_theta_sq(theta, theta_sq) + (cross_product_matrix(w) * A) * sinc(theta, theta_sq);
+    return A * cos_th + w * (w.transpose() * A) * one_minus_cos_div_theta_sq(theta, theta_sq) - A.colwise().cross(w * sinc(theta, theta_sq));
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -173,10 +173,24 @@ auto rotation_optimization<Real_>::grad_rotated_vector(const Vec3 &w, const Vec3
     const Real_ theta    = sqrt(theta_sq);
     const Real_ w_dot_v  = w.dot(v);
 
-    Mat3 result = (v * w.transpose() + cross_product_matrix(v)) * -sinc(theta, theta_sq);
-    result += (w_dot_v * Mat3::Identity() + w * v.transpose()) * one_minus_cos_div_theta_sq(theta, theta_sq);
-    result += (w * w.transpose()) * (w_dot_v * two_cos_minus_2_plus_theta_sin_div_theta_pow_4(theta, theta_sq));
-    result += (w.cross(v) * w.transpose()) * theta_cos_minus_sin_div_theta_cubed(theta, theta_sq);
+    // Mat3 result = (v * w.transpose() + cross_product_matrix(v)) * -sinc(theta, theta_sq);
+    // result += (w_dot_v * Mat3::Identity() + w * v.transpose()) * one_minus_cos_div_theta_sq(theta, theta_sq);
+    // result += (w * w.transpose()) * (w_dot_v * two_cos_minus_2_plus_theta_sin_div_theta_pow_4(theta, theta_sq));
+    // result += (w.cross(v) * w.transpose()) * theta_cos_minus_sin_div_theta_cubed(theta, theta_sq);
+
+    const Vec3 neg_v_sinc = v * (-sinc(theta, theta_sq));
+    const Real_ coeff = one_minus_cos_div_theta_sq(theta, theta_sq);
+
+    Mat3 result = (neg_v_sinc + w.cross(v) * theta_cos_minus_sin_div_theta_cubed(theta, theta_sq) + w * (w_dot_v * two_cos_minus_2_plus_theta_sin_div_theta_pow_4(theta, theta_sq))) * w.transpose()
+                + (coeff * w) * v.transpose();
+    result.diagonal().array() += w_dot_v * coeff;
+    result(0, 1) += -neg_v_sinc[2];
+    result(0, 2) +=  neg_v_sinc[1];
+    result(1, 0) +=  neg_v_sinc[2];
+    result(1, 2) += -neg_v_sinc[0];
+    result(2, 0) += -neg_v_sinc[1];
+    result(2, 1) +=  neg_v_sinc[0];
+
     return result;
 }
 
@@ -336,31 +350,43 @@ hess_rotated_vector(const Vec3 &w, const Vec3 &v,
     // Use simpler formula for variation around the identity
     // (But only if we're using a native floating point type;
     //  for autodiff types, we need the full formula).
-    Mat3 I(Mat3::Identity());
     if ((theta_sq == 0) && (std::is_arithmetic<Real_>::value)) {
-        for (size_t i = 0; i < 3; ++i)
-            hess_comp[i] = -v[i] * I + 0.5 * (I.col(i) * v.transpose() + v * I.row(i));
+        const Vec3 half_v = 0.5 * v;
+        for (size_t i = 0; i < 3; ++i) {
+            // hess_comp[i] = -v[i] * I + 0.5 * (I.col(i) * v.transpose() + v * I.row(i));
+            hess_comp[i].setZero();
+            hess_comp[i].diagonal().array() = -v[i];
+            hess_comp[i].row(i) += half_v.transpose();
+            hess_comp[i].col(i) += half_v;
+        }
         return;
     }
 
     const Real_ theta   = sqrt(theta_sq);
     const Real_ w_dot_v = w.dot(v);
-    Mat3 w_otimes_w = w * w.transpose();
-    Mat3 w_otimes_v = w * v.transpose();
     const Real_ coeff0 = sinc                                                                               (theta, theta_sq),
                  coeff1 = theta_cos_minus_sin_div_theta_cubed                                               (theta, theta_sq),
                  coeff2 = one_minus_cos_div_theta_sq                                                        (theta, theta_sq),
                  coeff3 = two_cos_minus_2_plus_theta_sin_div_theta_pow_4                                    (theta, theta_sq),
                  coeff4 = w_dot_v * eight_plus_theta_sq_minus_eight_cos_minus_five_theta_sin_div_theta_pow_6(theta, theta_sq),
                  coeff5 = three_theta_cos_plus_theta_sq_minus_3_sin_div_theta_pow_5                         (theta, theta_sq);
-    Mat3 v_cross = cross_product_matrix(v);
-    Vec3 v_cross_w = v.cross(w);
+    const Mat3 coeff1_v_cross = cross_product_matrix(coeff1 * v);
+    const Vec3 v_cross_w = v.cross(w);
+    const Vec3 term1 = coeff2 * v + (coeff3 * w_dot_v) * w;
+    const Vec3 coeff3_w = coeff3 * w;
+    Mat3 coeff3_w_otimes_v = coeff3_w * v.transpose();
     for (size_t i = 0; i < 3; ++i) {
-        hess_comp[i] = (-coeff0 * v[i]) * I
-                     - coeff1 * (v[i] * w_otimes_w + w * v_cross.row(i) + v_cross.row(i).transpose() * w.transpose() + v_cross_w[i] * I)
-                     + coeff2 * (I.col(i) * v.transpose() + v * I.row(i))
-                     + coeff3 * (w_dot_v * (I.col(i) * w.transpose() + w * I.row(i) + w[i] * I) + w[i] * (w_otimes_v + w_otimes_v.transpose()))
-                     + (coeff4 * w[i] + coeff5 * v_cross_w[i]) * w_otimes_w;
+        // hess_comp[i] = (-coeff0 * v[i]) * I
+        //              - coeff1 * (v[i] * w_otimes_w + w * v_cross.row(i) + v_cross.row(i).transpose() * w.transpose() + v_cross_w[i] * I)
+        //              + coeff2 * (I.col(i) * v.transpose() + v * I.row(i))
+        //              + coeff3 * (w_dot_v * (I.col(i) * w.transpose() + w * I.row(i) + w[i] * I) + w[i] * (w_otimes_v + w_otimes_v.transpose()))
+        //              + (coeff4 * w[i] + coeff5 * v_cross_w[i]) * w_otimes_w;
+        hess_comp[i] = ((coeff4 * w[i] + coeff5 * v_cross_w[i] - coeff1 * v[i]) * w + coeff1_v_cross.col(i) + coeff3_w[i] * v) * w.transpose()
+                        - w * coeff1_v_cross.row(i)
+                        + w[i] * coeff3_w_otimes_v;
+        hess_comp[i].col(i) += term1;
+        hess_comp[i].row(i) += term1.transpose();
+        hess_comp[i].diagonal().array() += w_dot_v * coeff3_w[i] - coeff0 * v[i] - coeff1 * v_cross_w[i];
     }
 }
 
