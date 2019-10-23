@@ -41,7 +41,9 @@ set(CMAKE_BUILD_TYPE "${CMAKE_BUILD_TYPE}" CACHE STRING "Choose the type of buil
 include(Warnings)
 
 # Make sure warnings/errors are still colorized when using Ninja for building.
-add_definitions(-fdiagnostics-color=always)
+if(NOT CMAKE_CXX_COMPILER_ID STREQUAL "Intel")
+    add_definitions(-fdiagnostics-color=always)
+endif()
 
 # Export compile flags(used for autocompletion of the C++ code)
 set(CMAKE_EXPORT_COMPILE_COMMANDS 1)
@@ -50,7 +52,7 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS 1)
 include(CMakeToolsHelpers OPTIONAL)
 
 # Enable more warnings
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Wpedantic -Wno-comment")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -pedantic -Wno-comment")
 
 # We need -fPIC when compiling our libraries and our dependencies for
 # the python bindings to link.
