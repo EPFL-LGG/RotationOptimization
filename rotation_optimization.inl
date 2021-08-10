@@ -141,9 +141,9 @@ auto rotation_optimization<Real_>::grad_rotation_matrix(const Vec3 &w) -> Eigen:
     g(0, 1, 2) = -coeff0; g(1, 0, 2) =  coeff0;
 
     // (e^i otimes w + w otimes e^i) otimes e^i * coeff1
-    for (size_t j = 0; j < 3; ++j) {
+    for (int j = 0; j < 3; ++j) {
         const Real_ val = w[j] * coeff1;
-        for (size_t i = 0; i < 3; ++i) {
+        for (int i = 0; i < 3; ++i) {
             g(i, j, i) += val;
             g(j, i, i) += val;
         }
@@ -151,9 +151,9 @@ auto rotation_optimization<Real_>::grad_rotation_matrix(const Vec3 &w) -> Eigen:
 
     Mat3 w_cross = cross_product_matrix(w);
     // w otimes w otimes w coeff2 + [w]_x otimes w coeff3
-    for (size_t i = 0; i < 3; ++i)
-        for (size_t j = 0; j < 3; ++j)
-            for (size_t k = 0; k < 3; ++k)
+    for (int i = 0; i < 3; ++i)
+        for (int j = 0; j < 3; ++j)
+            for (int k = 0; k < 3; ++k)
                 g(i, j, k) += w[i] * w[j] * w[k] * coeff2 + w_cross(i, j) * w[k] * coeff3;
 
     return g;
@@ -293,7 +293,7 @@ auto rotation_optimization<Real_>::hess_rotation_matrix(const Vec3 &w) -> Eigen:
         }
     }
     // ([e^i]_x otimes (e^i otimes w + w otimes e^i)) coeff1
-    for (size_t k = 0; k < 3; ++k) {
+    for (int k = 0; k < 3; ++k) {
         Real_ val = coeff1 * w[k];
         H(1, 2, 0, k) += -val; H(2, 1, 0, k) +=  val;
         H(0, 2, 1, k) +=  val; H(2, 0, 1, k) += -val;
@@ -352,7 +352,7 @@ hess_rotated_vector(const Vec3 &w, const Vec3 &v,
     //  for autodiff types, we need the full formula).
     if ((theta_sq == 0) && (std::is_arithmetic<Real_>::value)) {
         const Vec3 half_v = 0.5 * v;
-        for (size_t i = 0; i < 3; ++i) {
+        for (int i = 0; i < 3; ++i) {
             // hess_comp[i] = -v[i] * I + 0.5 * (I.col(i) * v.transpose() + v * I.row(i));
             hess_comp[i].setZero();
             hess_comp[i].diagonal().array() = -v[i];
@@ -375,7 +375,7 @@ hess_rotated_vector(const Vec3 &w, const Vec3 &v,
     const Vec3 term1 = coeff2 * v + (coeff3 * w_dot_v) * w;
     const Vec3 coeff3_w = coeff3 * w;
     Mat3 coeff3_w_otimes_v = coeff3_w * v.transpose();
-    for (size_t i = 0; i < 3; ++i) {
+    for (int i = 0; i < 3; ++i) {
         // hess_comp[i] = (-coeff0 * v[i]) * I
         //              - coeff1 * (v[i] * w_otimes_w + w * v_cross.row(i) + v_cross.row(i).transpose() * w.transpose() + v_cross_w[i] * I)
         //              + coeff2 * (I.col(i) * v.transpose() + v * I.row(i))
@@ -433,7 +433,7 @@ auto rotation_optimization<Real_>::hess_rotated_matrix(const Vec3 &w, const Eige
         for (int i = 0; i < 3; ++i) { // Compute the Hessian of each component of the rotated column vector.
             H(i, j, 0, 0) = H(i, j, 1, 1) = H(i, j, 2, 2) = -coeff0 * v[i] - coeff1 * v_cross_w[i] + coeff3 * w_dot_v * w[i]; // Identity coefficients
             for (int k = 0; k < 3; ++k) {
-                for (size_t l = 0; l < 3; ++l) {
+                for (int l = 0; l < 3; ++l) {
                     const Real_ tmp = coeff3 * w[i] * w[k] * v[l] - coeff1 * (w[k] * v_cross(i, l));
                     H(i, j, k, l) += tmp + (w_dot_v * coeff4 * w[i] + coeff5 * v_cross_w[i] - coeff1 * v[i]) * w[k] * w[l];
                     H(i, j, l, k) += tmp;

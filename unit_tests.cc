@@ -24,7 +24,7 @@ Vec3 randomAxisAngle(double magnitude) {
 // Test rotations around all three axes of vectors along all three axes;
 TEST_CASE("Rotated vector test", "[rotated vector]" ) {
     Mat3 I(Mat3::Identity());
-    for (size_t j = 0; j < 3; ++j) {
+    for (int j = 0; j < 3; ++j) {
         Vec3 v = I.col(j);
         for (size_t t = 0; t < 10000; ++t) {
             auto w = randomAxisAngle(M_PI); // try random axes and rotation angles in the interval [-pi, pi]
@@ -180,7 +180,7 @@ Eigen::Tensor<double, 3> finite_diff_rotated_matrix_gradient(const Vec3 &w, cons
     Mat3 I(Mat3::Identity());
     const int ncols = A.cols();
     Eigen::Tensor<double, 3> result(3, ncols, 3);
-    for (size_t k = 0; k < 3; ++k) {
+    for (int k = 0; k < 3; ++k) {
         auto fdslice = ((0.5 / eps) * (ropt::rotated_matrix(w + eps * I.col(k), A) - ropt::rotated_matrix(w - eps * I.col(k), A))).eval();
         for (int i = 0; i < 3; ++i)
             for (int j = 0; j < ncols; ++j)
@@ -194,7 +194,7 @@ Eigen::Tensor<double, 4> finite_diff_rotated_matrix_hessian(const Vec3 &w, const
     Mat3 I(Mat3::Identity());
     const int ncols = A.cols();
     Eigen::Tensor<double, 4> result(3, ncols, 3, 3);
-    for (size_t l = 0; l < 3; ++l) {
+    for (int l = 0; l < 3; ++l) {
         Eigen::Tensor<double, 3>  fdslice = (0.5 / eps) * (ropt::grad_rotated_matrix(w + eps * I.col(l), A) -
                                                            ropt::grad_rotated_matrix(w - eps * I.col(l), A));
         for (int i = 0; i < 3; ++i) {
@@ -225,7 +225,7 @@ void run_rotated_matrix_test(const Test &the_test, double angleMag, int ncols = 
 TEST_CASE("Rotated matrix test", "[rotated matrix]" ) {
     auto the_test = [](const Vec3 &w, const auto &A) {
         auto rot              = ropt::rotated_matrix(w, A);
-        auto rot_ground_truth = Eigen::AngleAxisd(w.norm(), w.normalized()).matrix() * A;
+        auto rot_ground_truth = (Eigen::AngleAxisd(w.norm(), w.normalized()).matrix() * A).eval();
         REQUIRE((rot - rot_ground_truth).norm() < 1e-9);
     };
     run_rotated_matrix_test<             1>(the_test, M_PI);
@@ -345,7 +345,7 @@ TEST_CASE("Hessian rotated matrix test", "[Hessian rotated matrix]" ) {
 Eigen::Tensor<double, 3> finite_diff_rotation_gradient(const Vec3 &w, const double eps) {
     Mat3 I(Mat3::Identity());
     Eigen::Tensor<double, 3> result(3, 3, 3);
-    for (size_t k = 0; k < 3; ++k) {
+    for (int k = 0; k < 3; ++k) {
         Mat3 fdslice = (0.5 / eps) * (ropt::rotation_matrix(w + eps * I.col(k)) - ropt::rotation_matrix(w - eps * I.col(k)));
         for (int i = 0; i < 3; ++i)
             for (int j = 0; j < 3; ++j)
@@ -357,12 +357,12 @@ Eigen::Tensor<double, 3> finite_diff_rotation_gradient(const Vec3 &w, const doub
 Eigen::Tensor<double, 4> finite_diff_rotation_hessian(const Vec3 &w, const double eps) {
     Mat3 I(Mat3::Identity());
     Eigen::Tensor<double, 4> result(3, 3, 3, 3);
-    for (size_t l = 0; l < 3; ++l) {
+    for (int l = 0; l < 3; ++l) {
         Eigen::Tensor<double, 3>  fdslice = (0.5 / eps) * (ropt::grad_rotation_matrix(w + eps * I.col(l)) -
                                                            ropt::grad_rotation_matrix(w - eps * I.col(l)));
-        for (size_t i = 0; i < 3; ++i) {
-            for (size_t j = 0; j < 3; ++j) {
-                for (size_t k = 0; k < 3; ++k)
+        for (int i = 0; i < 3; ++i) {
+            for (int j = 0; j < 3; ++j) {
+                for (int k = 0; k < 3; ++k)
                     result(i, j, k, l) = fdslice(i, j, k);
             }
         }

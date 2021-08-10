@@ -2,13 +2,15 @@
 # General Informations
 ################################################################################
 
-cmake_minimum_required(VERSION 3.1)
+cmake_minimum_required(VERSION 3.14)
 project(rotation_optimization)
 
 # CMP0063: Honor visibility properties for all target types.
-if(POLICY CMP0063)
+if (POLICY CMP0063)
     cmake_policy(SET CMP0063 NEW)
 endif()
+
+set(CMAKE_MACOSX_RPATH 1)
 
 ################################################################################
 
@@ -58,49 +60,45 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -pedantic -Wno-comment")
 # the python bindings to link.
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
+# Work-around issue where include directories of imported targets are not
+# interpreted as SYSTEM contrary to the claims here:
+# https://discourse.cmake.org/t/declare-imported-targets-as-system-to-suppress-warnings/555
+include(target_link_libraries_system)
+
 ################################################################################
 # Common libraries
 ################################################################################
-include(DownloadProject)
+include(FetchContent)
 set(ROTOPT_ROOT "${CMAKE_CURRENT_LIST_DIR}")
 set(ROTOPT_EXTERNAL "${ROTOPT_ROOT}/3rdparty")
 
-# With CMake 3.8 and above, we can hide warnings about git being in a
-# detached head by passing an extra GIT_CONFIG option
-if(NOT (${CMAKE_VERSION} VERSION_LESS "3.8.0"))
-    set(ROTOPT_EXTRA_OPTIONS "GIT_CONFIG advice.detachedHead=false")
-else()
-    set(ROTOPT_EXTRA_OPTIONS "")
-endif()
-
-
 function(rotopt_download_project name)
-    download_project(
-        PROJ         ${name}
+    FetchContent_Declare(${name}
         SOURCE_DIR   ${ROTOPT_EXTERNAL}/${name}
         DOWNLOAD_DIR ${ROTOPT_EXTERNAL}/.cache/${name}
         QUIET
-        ${ROTOPT_EXTRA_OPTIONS}
         ${ARGN}
     )
+    set(OLD_CMAKE_BUILD_TYPE ${CMAKE_BUILD_TYPE})
+    set(CMAKE_BUILD_TYPE Release)
+    FetchContent_MakeAvailable(${name})
+    set(CMAKE_BUILD_TYPE ${OLD_CMAKE_BUILD_TYPE})
 endfunction()
+
 
 # Eigen3 library
 if(NOT TARGET Eigen3::Eigen)
-    add_library(rotopt_eigen INTERFACE)
-    rotopt_download_project(eigen
-        URL     https://gitlab.com/libeigen/eigen/-/archive/3.3.4/eigen-3.3.4.tar.bz2
-        URL_MD5 6e74a04aeab3417120f1bdef6f3b4881
+    rotopt_download_project(Eigen
+        URL     https://gitlab.com/libeigen/eigen/-/archive/3.4-rc1/eigen-3.4-rc1.tar.gz
+        URL_MD5 0839b9721e65d2328fb96eb4290d74cc
     )
-    target_include_directories(rotopt_eigen SYSTEM INTERFACE ${ROTOPT_EXTERNAL}/eigen)
-    add_library(Eigen3::Eigen ALIAS rotopt_eigen)
 endif()
 
 ################################################################################
 # Rotation optimization library
 ################################################################################
 add_library(rotation_optimization INTERFACE)
-target_link_libraries(rotation_optimization INTERFACE Eigen3::Eigen)
+target_link_libraries_system(rotation_optimization INTERFACE Eigen3::Eigen)
 target_include_directories(rotation_optimization INTERFACE .)
 
 ################################################################################
@@ -110,11 +108,9 @@ if(CMAKE_SOURCE_DIR STREQUAL PROJECT_SOURCE_DIR)
     # Catch2
     if(NOT TARGET Catch2::Catch2)
         rotopt_download_project(Catch2
-            URL     https://github.com/catchorg/Catch2/archive/v2.3.0.tar.gz
-            URL_MD5 1fc90ff3b7b407b83057537f4136489e
+	        URL     https://github.com/catchorg/Catch2/archive/v2.13.3.tar.gz
+            URL_MD5 57612324e1e0b49dfc8eab68c03f8473
         )
-        add_subdirectory(${ROTOPT_EXTERNAL}/Catch2)
-        list(APPEND CMAKE_MODULE_PATH ${ROTOPT_EXTERNAL}/Catch2/contrib)
     endif()
 
     add_executable(unit_tests unit_tests.cc)
