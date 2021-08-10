@@ -27,7 +27,7 @@ set(MY_FLAGS
         -Wmissing-format-attribute
         -Wredundant-decls
 
-        -Werror=implicit
+        #-Werror=implicit # not valid for C++
         -Werror=nonnull
         -Werror=init-self
         -Werror=main
@@ -39,7 +39,7 @@ set(MY_FLAGS
         -Werror=write-strings
         -Werror=address
         -Werror=int-to-pointer-cast
-        -Werror=pointer-to-int-cast
+        #-Werror=pointer-to-int-cast # not valid for C++
 
         -Wno-unused-variable
         -Wunused-but-set-variable
