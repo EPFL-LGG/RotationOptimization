@@ -72,6 +72,9 @@ struct rotation_optimization {
         hess_rotated_vector(w, v, hc_refs);
     }
 
+    // d_i H_ijk where H_ijk is the Hessian of R(w) v.
+    static Mat3 d_contract_hess_rotated_vector(const Vec3 &w, const Vec3 &v, const Vec3 &d);
+
     // The Hessian of R(w) A for 3xN matrix A; this is a fourth order tensor:
     //      H_ijkl = d [R(w) A]_ij / (dw_k dw_l)
     template<int N>

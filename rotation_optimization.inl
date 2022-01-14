@@ -390,6 +390,53 @@ hess_rotated_vector(const Vec3 &w, const Vec3 &v,
     }
 }
 
+// d_i H_ijk where H_ijk is the Hessian of R(w) v.
+template<typename Real_>
+Eigen::Matrix<Real_, 3, 3> rotation_optimization<Real_>::
+d_contract_hess_rotated_vector(const Vec3 &w, const Vec3 &v, const Vec3 &d) {
+    const Real_ theta_sq = w.squaredNorm();
+
+    Mat3 result;
+    result.setZero();
+
+    // Use simpler formula for variation around the identity
+    // (But only if we're using a native floating point type;
+    //  for autodiff types, we need the full formula).
+    if ((theta_sq == 0) && (std::is_arithmetic<Real_>::value)) {
+        const Vec3 half_v = 0.5 * v;
+        for (int i = 0; i < 3; ++i) {
+            // hess_comp[i] = -v[i] * I + 0.5 * (I.col(i) * v.transpose() + v * I.row(i));
+            result.diagonal().array() += -v[i] * d[i];
+            result.row(i) += d[i] * half_v.transpose();
+            result.col(i) += d[i] * half_v;
+        }
+        return result;
+    }
+
+    const Real_ theta   = sqrt(theta_sq);
+    const Real_ w_dot_v = w.dot(v);
+    const Real_ coeff0 = sinc                                                                               (theta, theta_sq),
+                 coeff1 = theta_cos_minus_sin_div_theta_cubed                                               (theta, theta_sq),
+                 coeff2 = one_minus_cos_div_theta_sq                                                        (theta, theta_sq),
+                 coeff3 = two_cos_minus_2_plus_theta_sin_div_theta_pow_4                                    (theta, theta_sq),
+                 coeff4 = w_dot_v * eight_plus_theta_sq_minus_eight_cos_minus_five_theta_sin_div_theta_pow_6(theta, theta_sq),
+                 coeff5 = three_theta_cos_plus_theta_sq_minus_3_sin_div_theta_pow_5                         (theta, theta_sq);
+    const Mat3 coeff1_v_cross = cross_product_matrix(coeff1 * v);
+    const Vec3 v_cross_w = v.cross(w);
+    const Vec3 term1 = coeff2 * v + (coeff3 * w_dot_v) * w;
+    const Vec3 coeff3_w = coeff3 * w;
+    Mat3 coeff3_w_otimes_v = coeff3_w * v.transpose();
+    for (int i = 0; i < 3; ++i) {
+        result += d[i] * (((coeff4 * w[i] + coeff5 * v_cross_w[i] - coeff1 * v[i]) * w + coeff1_v_cross.col(i) + coeff3_w[i] * v) * w.transpose()
+                  - w * coeff1_v_cross.row(i)
+                  + w[i] * coeff3_w_otimes_v);
+        result.col(i) += d[i] * term1;
+        result.row(i) += d[i] * term1.transpose();
+        result.diagonal().array() += d[i] * (w_dot_v * coeff3_w[i] - coeff0 * v[i] - coeff1 * v_cross_w[i]);
+    }
+    return result;
+}
+
 // The Hessian of R(w) A for 3xN matrix A. This is a fourth order tensor:
 //      H_ijkl = d [R(w) A]_ij / (dw_k dw_l)
 template<typename Real_>

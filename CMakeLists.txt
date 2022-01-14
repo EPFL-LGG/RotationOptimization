@@ -108,7 +108,7 @@ if(CMAKE_SOURCE_DIR STREQUAL PROJECT_SOURCE_DIR)
     # Catch2
     if(NOT TARGET Catch2::Catch2)
         rotopt_download_project(Catch2
-	        URL     https://github.com/catchorg/Catch2/archive/v2.13.3.tar.gz
+            URL     https://github.com/catchorg/Catch2/archive/v2.13.3.tar.gz
             URL_MD5 57612324e1e0b49dfc8eab68c03f8473
         )
     endif()

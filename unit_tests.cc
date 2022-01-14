@@ -152,6 +152,22 @@ TEST_CASE("Hessian rotated vector tests", "[Hessian rotated vector]" ) {
             }
         }
     }
+
+    SECTION("Contraction with vector") {
+        std::array<Mat3, 3> hess_comp_storage;
+        for (size_t i = 0; i < 3; ++i) {
+            for (size_t t = 0; t < 10000; ++t) {
+                auto w = randomAxisAngle(0.9 * M_PI);
+                auto d = randomAxisAngle(0.9 * M_PI);
+                Mat3 result = ropt::d_contract_hess_rotated_vector(w, I.col(i), d);
+                ropt::hess_rotated_vector(w, I.col(i), hess_comp_storage);
+                Mat3 result_ground_truth = Mat3::Zero();
+                for (size_t c = 0; c < 3; ++c)
+                    result_ground_truth += d[c] * hess_comp_storage[c];
+                REQUIRE((result - result_ground_truth).norm() < 1e-15 * result.norm());
+            }
+        }
+    }
 }
 
 double norm(const Eigen::Tensor<double, 3> &a) {
