@@ -1,3 +1,6 @@
+#ifndef ROTATION_OPTIMIZATION_INL_HH
+#define ROTATION_OPTIMIZATION_INL_HH
+
 #include "rotation_optimization.hh"
 #include <cmath>
 #include <iostream>
@@ -56,6 +59,27 @@ template<typename Real_>
 Real_ three_theta_cos_plus_theta_sq_minus_3_sin_div_theta_pow_5(Real_ theta, Real_ theta_sq) {
     if (theta_sq < theta_sq_crossover_threshold) { return -1.0 / 15.0 + theta_sq / 210.0; }
     return (3 * theta * cos(theta) + (theta_sq - 3) * sin(theta)) / (theta_sq * theta_sq * theta);
+}
+
+// (theta - sin(theta)) / theta^3
+template<typename Real_>
+Real_ theta_minus_sin_div_theta_cubed(Real_ theta, Real_ theta_sq) {
+    if (theta_sq < theta_sq_crossover_threshold) { return 1.0 / 6.0 - theta_sq / 120.0; }
+    return (theta - sin(theta)) / (theta * theta_sq);
+}
+
+// (3 sin(theta) - theta * (2 + cos(theta))) / theta^5
+template<typename Real_>
+Real_ three_sin_minus_theta_times_two_plus_cos_div_theta_pow_5(Real_ theta, Real_ theta_sq) {
+    if (theta_sq < theta_sq_crossover_threshold) { return -1.0 / 60.0 + theta_sq / 1260.0; }
+    return (3 * sin(theta) - theta * (2 + cos(theta))) / (theta_sq * theta_sq * theta);
+}
+
+// ((theta^2 - 15) sin(theta) + 8 theta + 7 theta * cos(theta))/theta^7
+template<typename Real_>
+Real_ theta_sq_minus_15_sin_plus_8_theta_plus_7_theta_cos_div_theta_pow_7(Real_ theta, Real_ theta_sq) {
+    if (theta_sq < theta_sq_crossover_threshold) { return 1.0 / 630.0 - theta_sq / 15120.0; }
+    return ((theta_sq - 15) * sin(theta) + 8 * theta + 7 * theta * cos(theta)) / (theta_sq * theta_sq * theta_sq * theta);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -493,3 +517,5 @@ auto rotation_optimization<Real_>::hess_rotated_matrix(const Vec3 &w, const Eige
     }
     return H;
 }
+
+#endif /* end of include guard: ROTATION_OPTIMIZATION_INL_HH */
